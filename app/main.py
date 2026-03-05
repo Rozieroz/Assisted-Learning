@@ -1,9 +1,11 @@
 """
 Main FastAPI application.
 Configures logging, CORS, and includes API routers.
+Uses lifespan context manager instead of deprecated on_event.
 """
 
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import submit, progress, reports
@@ -15,14 +17,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Create FastAPI instance
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting up Kipaji Chetu API...")
+    yield
+    # Shutdown
+    logger.info("Shutting down...")
+
+# Create FastAPI instance with lifespan
 app = FastAPI(
     title="Kipaji Chetu API",
     description="AI-powered personalized learning system with inclusive design",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
-# CORS middleware (allow frontend during development)
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Restrict in production
@@ -39,11 +50,3 @@ app.include_router(reports.router, prefix="/api", tags=["Teacher Reports"])
 @app.get("/")
 async def root():
     return {"message": "Kipaji Chetu API is running."}
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Starting up Kipaji Chetu API...")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Shutting down...")
