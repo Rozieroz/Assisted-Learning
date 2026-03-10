@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Dashboard</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b27;
+      --card:      #1c2333;
+      --border:    #2a3248;
+      --accent:    #4f7fff;
+      --accent2:   #ff6b6b;
+      --accent3:   #38d9a9;
+      --text:      #e6ecf8;
+      --muted:     #7a8aaa;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius:    14px;
+      --shadow:    0 4px 32px rgba(0,0,0,0.45);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .dash-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 22px 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .dash-header h1 {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1.45rem;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .dash-header h1 span { color: var(--accent); }
+    .dash-header .badge-live {
+      background: rgba(79,127,255,0.12);
+      border: 1px solid rgba(79,127,255,0.3);
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      margin-left: 12px;
+      vertical-align: middle;
+    }
+    .btn-refresh {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      padding: 9px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+      box-shadow: 0 2px 14px rgba(79,127,255,0.25);
+    }
+    .btn-refresh:hover  { background: #3a6aee; box-shadow: 0 4px 24px rgba(79,127,255,0.4); }
+    .btn-refresh:active { transform: scale(0.97); }
+    .btn-refresh.loading i { animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Main layout ── */
+    .dash-main { padding: 36px 36px 60px; max-width: 1280px; margin: 0 auto; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Alert ── */
+    .alert-custom {
+      background: rgba(255,107,107,0.1);
+      border: 1px solid rgba(255,107,107,0.3);
+      color: #ff8e8e;
+      border-radius: var(--radius);
+      padding: 18px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      font-size: 0.9rem;
+    }
+    .alert-custom i { font-size: 1.2rem; margin-top: 1px; flex-shrink: 0; }
+
+    /* ── Stat cards ── */
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 30px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 40px rgba(0,0,0,0.55); }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .stat-card.blue::before  { background: var(--accent); }
+    .stat-card.green::before { background: var(--accent3); }
+    .stat-card .stat-icon {
+      width: 46px; height: 46px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 18px;
+    }
+    .stat-card.blue  .stat-icon { background: rgba(79,127,255,0.12);  color: var(--accent); }
+    .stat-card.green .stat-icon { background: rgba(56,217,169,0.12); color: var(--accent3); }
+    .stat-card .stat-label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .stat-card .stat-value {
+      font-family: var(--font-head);
+      font-size: 2.6rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+    .stat-card.blue  .stat-value { color: var(--accent); }
+    .stat-card.green .stat-value { color: var(--accent3); }
+    .stat-card .stat-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ── Panel card ── */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel-header .ph-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .ph-icon.red   { background: rgba(255,107,107,0.12); color: var(--accent2); }
+    .ph-icon.blue  { background: rgba(79,127,255,0.12);  color: var(--accent); }
+    .ph-icon.green { background: rgba(56,217,169,0.12);  color: var(--accent3); }
+    .panel-header h2 {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: -0.2px;
+      color: var(--text);
+      margin: 0;
+    }
+    .panel-header .badge-count {
+      margin-left: auto;
+      background: var(--border);
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── Tables ── */
+    .dash-table { width: 100%; border-collapse: collapse; }
+    .dash-table thead th {
+      padding: 10px 24px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .dash-table tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.12s;
+    }
+    .dash-table tbody tr:last-child { border-bottom: none; }
+    .dash-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+    .dash-table tbody td {
+      padding: 13px 24px;
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+    .score-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 600;
+      font-size: 0.82rem;
+    }
+    .score-pill .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .score-low  .dot { background: var(--accent2); }
+    .score-mid  .dot { background: #f7b731; }
+    .score-high .dot { background: var(--accent3); }
+    .score-low  { color: var(--accent2); }
+    .score-mid  { color: #f7b731; }
+    .score-high { color: var(--accent3); }
+
+    .empty-state {
+      padding: 36px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .empty-state i { font-size: 2rem; display: block; margin-bottom: 10px; opacity: 0.4; }
+
+    /* ── Chart ── */
+    .chart-wrap {
+      padding: 24px;
+      position: relative;
+      min-height: 260px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .chart-wrap canvas { max-height: 300px; }
+
+    /* ── Skeleton loader ── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, rgba(255,255,255,0.06) 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+      display: inline-block;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* ── Bonus: STT / TTS panels ── */
+    .bonus-panel .panel-header { border-bottom-color: rgba(79,127,255,0.2); }
+    .bonus-body { padding: 24px; }
+    .custom-file-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s;
+      color: var(--muted);
+      font-size: 0.87rem;
+    }
+    .custom-file-label:hover { border-color: var(--accent); color: var(--accent); background: rgba(79,127,255,0.04); }
+    #stt-file-input { display: none; }
+    .result-box {
+      margin-top: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 0.88rem;
+      color: var(--text);
+      min-height: 56px;
+      line-height: 1.6;
+    }
+    .result-box.placeholder { color: var(--muted); font-style: italic; }
+    .tts-row { display: flex; gap: 10px; }
+    .tts-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 16px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.18s;
+    }
+    .tts-input:focus { border-color: var(--accent); }
+    .tts-input::placeholder { color: var(--muted); }
+    .btn-action {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-action.loading i { animation: spin 0.7s linear infinite; }
+
+    /* ── Toast ── */
+    #toast-container {
+      position: fixed;
+      bottom: 28px; right: 28px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast-msg {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.3s ease;
+      max-width: 320px;
+    }
+    .toast-msg.success { border-color: rgba(56,217,169,0.4); color: var(--accent3); }
+    .toast-msg.error   { border-color: rgba(255,107,107,0.4); color: var(--accent2); }
+    @keyframes slideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:none; } }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .dash-header { padding: 16px 20px; }
+      .dash-header h1 { font-size: 1.1rem; }
+      .dash-main { padding: 20px 16px 40px; }
+      .tts-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════ HEADER ════════════════════════════ -->
+<header class="dash-header">
+  <div class="d-flex align-items-center">
+    <h1><span>Kipaji</span>Chetu <span style="opacity:.35;font-weight:400;">/ </span>Dashboard</h1>
+    <span class="badge-live">Live</span>
+  </div>
+  <button class="btn-refresh" id="refreshBtn" onclick="loadData()">
+    <i class="bi bi-arrow-clockwise"></i> Refresh Data
+  </button>
+</header>
+
+<!-- ════════════════════════════ MAIN ════════════════════════════ -->
+<main class="dash-main">
+
+  <!-- Error alert -->
+  <div id="errorAlert" class="alert-custom mb-4 d-none">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div>
+      <strong>Unable to load data.</strong>
+      <div id="errorMsg" style="margin-top:4px;font-size:0.85rem;opacity:0.85;"></div>
+    </div>
+  </div>
+
+  <!-- ── Stat cards ── -->
+  <div class="section-label">Overview</div>
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+      <div class="stat-card blue h-100">
+        <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+        <div class="stat-label">Total Students</div>
+        <div class="stat-value" id="totalStudents">—</div>
+        <div class="stat-sub">Enrolled in class</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="stat-card green h-100">
+        <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+        <div class="stat-label">Class Average</div>
+        <div class="stat-value" id="classAvg">—</div>
+        <div class="stat-sub">Mean score across all topics</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tables row ── -->
+  <div class="section-label mt-2">Student & Topic Insights</div>
+  <div class="row g-4 mb-4">
+
+    <!-- Struggling students -->
+    <div class="col-lg-6">
+      <div class="panel h-100">
+        <div class="panel-header">
+          <div class="ph-icon red"><i class="bi bi-person-exclamation"></i></div>
+          <h2>Struggling Students</h2>
+          <span class="badge-count" id="strugglingCount">0</span>
+        </div>
+        <div id="strugglingTableWrap">
+          <div class="empty-state"><i class="bi bi-hourglass-split"></i>Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Difficult topics -->
+    <div class="col-lg-6">
+      <div class="panel h-100">
+        <div class="panel-header">
+          <div class="ph-icon blue"><i class="bi bi-lightbulb"></i></div>
+          <h2>Most Difficult Topics</h2>
+          <span class="badge-count" id="topicsCount">0</span>
+        </div>
+        <div id="topicsTableWrap">
+          <div class="empty-state"><i class="bi bi-hourglass-split"></i>Loading…</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Chart ── -->
+  <div class="section-label">Topic Performance</div>
+  <div class="panel mb-4">
+    <div class="panel-header">
+      <div class="ph-icon green"><i class="bi bi-bar-chart-fill"></i></div>
+      <h2>Topic Difficulty Breakdown</h2>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="topicChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ════ BONUS SECTION ════ -->
+  <div class="section-label mt-2">Bonus Tools</div>
+  <div class="row g-4">
+
+    <!-- Speech-to-Text -->
+    <div class="col-lg-6">
+      <div class="panel bonus-panel">
+        <div class="panel-header">
+          <div class="ph-icon blue"><i class="bi bi-mic-fill"></i></div>
+          <h2>Test Speech-to-Text</h2>
+        </div>
+        <div class="bonus-body">
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:14px;">
+            Upload an audio file to POST <code style="color:var(--accent)">/api/stt</code>
+          </p>
+          <label class="custom-file-label" for="stt-file-input" id="sttFileLabel">
+            <i class="bi bi-cloud-upload"></i>
+            <span id="sttFileName">Click to choose audio file…</span>
+          </label>
+          <input type="file" id="stt-file-input" accept="audio/*" onchange="onSttFileChange(this)" />
+          <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn-action" id="sttBtn" onclick="runStt()" disabled>
+              <i class="bi bi-arrow-right-circle"></i> Transcribe
+            </button>
+          </div>
+          <div class="result-box placeholder" id="sttResult">Transcribed text will appear here…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Text-to-Speech -->
+    <div class="col-lg-6">
+      <div class="panel bonus-panel">
+        <div class="panel-header">
+          <div class="ph-icon green"><i class="bi bi-volume-up-fill"></i></div>
+          <h2>Test Text-to-Speech</h2>
+        </div>
+        <div class="bonus-body">
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:14px;">
+            Enter text to send to GET <code style="color:var(--accent3)">/api/tts?text=…</code>
+          </p>
+          <div class="tts-row">
+            <input type="text" class="tts-input" id="ttsText" placeholder="Type something to say…" onkeydown="if(event.key==='Enter')runTts()" />
+            <button class="btn-action" id="ttsBtn" onclick="runTts()">
+              <i class="bi bi-play-fill"></i> Speak
+            </button>
+          </div>
+          <div style="margin-top:14px;">
+            <audio id="ttsAudio" controls style="display:none;width:100%;border-radius:8px;accent-color:var(--accent3);"></audio>
+            <div class="result-box placeholder" id="ttsStatus">Audio will play here…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Bootstrap JS bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // ===================================================
+  //  State
+  
+  let topicChart = null;
+
+  // =================================================
+  //  Toast
+  // 
+  function showToast(msg, type = 'success') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast-msg ${type}`;
+    t.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'x-circle-fill'}"></i> ${msg}`;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.4s'; setTimeout(() => t.remove(), 400); }, 3500);
+  }
+
+  // ================================================
+  //  Score pill helper
+  
+  function scorePill(val) {
+    const pct = typeof val === 'number' ? val : parseFloat(val);
+    const cls  = pct < 50 ? 'score-low' : pct < 75 ? 'score-mid' : 'score-high';
+    return `<span class="score-pill ${cls}"><span class="dot"></span>${pct.toFixed(1)}%</span>`;
+  }
+
+  // ==================================================
+  //  Render struggling students table
+  
+  function renderStruggling(students) {
+    const wrap = document.getElementById('strugglingTableWrap');
+    document.getElementById('strugglingCount').textContent = students.length;
+
+    if (!students.length) {
+      wrap.innerHTML = `<div class="empty-state"><i class="bi bi-emoji-smile"></i>No struggling students — great job!</div>`;
+      return;
+    }
+
+    const rows = students.map(s => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,107,107,0.12);color:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;">
+              ${(s.name||'?').charAt(0).toUpperCase()}
+            </div>
+            <span style="font-weight:500;">${escHtml(s.name)}</span>
+          </div>
+        </td>
+        <td>${scorePill(s.average_score)}</td>
+      </tr>`).join('');
+
+    wrap.innerHTML = `
+      <table class="dash-table">
+        <thead><tr><th>Student</th><th>Avg Score</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ================================================
+  //  Render difficult topics table
+  
+  function renderTopics(topics) {
+    const wrap = document.getElementById('topicsTableWrap');
+    document.getElementById('topicsCount').textContent = topics.length;
+
+    if (!topics.length) {
+      wrap.innerHTML = `<div class="empty-state"><i class="bi bi-info-circle"></i>No topic data available.</div>`;
+      return;
+    }
+
+    const rows = topics.map((t, i) => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:0.7rem;font-weight:700;color:var(--muted);width:20px;text-align:right;">${i+1}</span>
+            <span style="font-weight:500;">${escHtml(t.topic)}</span>
+          </div>
+        </td>
+        <td>${scorePill(t.average_score)}</td>
+      </tr>`).join('');
+
+    wrap.innerHTML = `
+      <table class="dash-table">
+        <thead><tr><th>Topic</th><th>Avg Score</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ================================================
+  //  Render chart
+  
+  function renderChart(topics) {
+    const labels = topics.map(t => t.topic);
+    const data   = topics.map(t => parseFloat(t.average_score).toFixed(1));
+
+    // colour gradient by score
+    const colors = data.map(v => {
+      const n = parseFloat(v);
+      if (n < 50) return 'rgba(255,107,107,0.85)';
+      if (n < 75) return 'rgba(247,183,49,0.85)';
+      return 'rgba(56,217,169,0.85)';
+    });
+
+    if (topicChart) topicChart.destroy();
+
+    const ctx = document.getElementById('topicChart').getContext('2d');
+    topicChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Average Score (%)',
+          data,
+          backgroundColor: colors,
+          borderColor: colors.map(c => c.replace('0.85', '1')),
+          borderWidth: 0,
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1c2333',
+            borderColor: '#2a3248',
+            borderWidth: 1,
+            titleColor: '#e6ecf8',
+            bodyColor: '#7a8aaa',
+            padding: 12,
+            callbacks: {
+              label: ctx => ` ${ctx.parsed.y}%`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#7a8aaa', font: { family: 'DM Sans', size: 12 } },
+            grid: { display: false },
+            border: { color: '#2a3248' }
+          },
+          y: {
+            min: 0, max: 100,
+            ticks: { color: '#7a8aaa', font: { family: 'DM Sans', size: 12 }, callback: v => v + '%' },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            border: { color: 'transparent' }
+          }
+        }
+      }
+    });
+  }
+
+  // ================================================
+  //  Main data loader
+  
+  async function loadData() {
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    const errAlert = document.getElementById('errorAlert');
+    errAlert.classList.add('d-none');
+
+    // skeleton placeholders
+    document.getElementById('totalStudents').innerHTML = `<span class="skeleton" style="width:60px;height:2.4rem;display:block;"></span>`;
+    document.getElementById('classAvg').innerHTML      = `<span class="skeleton" style="width:80px;height:2.4rem;display:block;"></span>`;
+    document.getElementById('strugglingTableWrap').innerHTML = `<div class="empty-state"><i class="bi bi-hourglass-split"></i>Loading…</div>`;
+    document.getElementById('topicsTableWrap').innerHTML     = `<div class="empty-state"><i class="bi bi-hourglass-split"></i>Loading…</div>`;
+
+    try {
+      const res = await fetch('/api/teacher-report');
+      if (!res.ok) throw new Error(`Server responded with ${res.status} ${res.statusText}`);
+      const data = await res.json();
+
+      // Metrics
+      document.getElementById('totalStudents').textContent = data.total_students ?? '—';
+      const avg = data.average_class_score ?? data.average_score ?? null;
+      document.getElementById('classAvg').textContent = avg !== null ? `${parseFloat(avg).toFixed(1)}%` : '—';
+
+      // Tables
+      renderStruggling(data.struggling_students || []);
+      renderTopics(data.most_difficult_topics || data.difficult_topics || []);
+
+      // Chart
+      const chartData = data.most_difficult_topics || data.difficult_topics || [];
+      if (chartData.length) renderChart(chartData);
+
+      showToast('Data refreshed successfully');
+    } catch (err) {
+      errAlert.classList.remove('d-none');
+      document.getElementById('errorMsg').textContent = err.message || 'An unexpected error occurred. Please try again.';
+      document.getElementById('totalStudents').textContent = '—';
+      document.getElementById('classAvg').textContent      = '—';
+      showToast('Failed to load data', 'error');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  // ================================================
+  //  STT
+  
+  let sttFile = null;
+
+  function onSttFileChange(input) {
+    sttFile = input.files[0] || null;
+    document.getElementById('sttFileName').textContent = sttFile ? sttFile.name : 'Click to choose audio file…';
+    document.getElementById('sttBtn').disabled = !sttFile;
+  }
+
+  async function runStt() {
+    if (!sttFile) return;
+    const btn = document.getElementById('sttBtn');
+    const result = document.getElementById('sttResult');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Processing…';
+    result.textContent = 'Transcribing…';
+    result.classList.add('placeholder');
+
+    try {
+      const fd = new FormData();
+      fd.append('file', sttFile);
+      const res = await fetch('/api/stt', { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const data = await res.json();
+      result.textContent = data.text || data.transcript || JSON.stringify(data);
+      result.classList.remove('placeholder');
+      showToast('Transcription complete');
+    } catch (err) {
+      result.textContent = `Error: ${err.message}`;
+      result.classList.remove('placeholder');
+      result.style.color = 'var(--accent2)';
+      showToast('STT request failed', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.innerHTML = '<i class="bi bi-arrow-right-circle"></i> Transcribe';
+    }
+  }
+
+  // ================================================
+  //  TTS
+  
+  async function runTts() {
+    const text = document.getElementById('ttsText').value.trim();
+    if (!text) { showToast('Please enter some text first', 'error'); return; }
+
+    const btn    = document.getElementById('ttsBtn');
+    const audio  = document.getElementById('ttsAudio');
+    const status = document.getElementById('ttsStatus');
+
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+    status.textContent = 'Generating speech…';
+    status.style.display = 'block';
+    audio.style.display = 'none';
+
+    try {
+      const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      audio.src = url;
+      audio.style.display = 'block';
+      status.style.display = 'none';
+      audio.play();
+      showToast('Audio ready — playing now');
+    } catch (err) {
+      status.textContent = `Error: ${err.message}`;
+      status.style.color = 'var(--accent2)';
+      showToast('TTS request failed', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.innerHTML = '<i class="bi bi-play-fill"></i> Speak';
+    }
+  }
+
+  // ==================================================
+  //  Utility
+  // 
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ================================================
+  //  Boot
+ 
+  document.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>

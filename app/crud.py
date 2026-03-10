@@ -2,6 +2,10 @@
 CRUD operations for database models.
 Async functions to interact with the database- to be used by the endpoints.
 All functions are async and use SQLAlchemy 1.4+ async syntax.
+
+contains functions to create and retrieve students, quiz attempts, and analytics data.
+Also includes a function to log interactions with the AI for audit purposes, and functions 
+    to update student difficulty and risk scores based on their performance trends.
 """
 
 import logging
@@ -11,6 +15,10 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional, Dict, Any
 
 from app import models, schemas
+
+# For analytics, => scikit-learn's LinearRegression to analyze performance trends for risk scoring.
+from sklearn.linear_model import LinearRegression
+
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +98,7 @@ async def get_students_below_threshold(db: AsyncSession, threshold: float = 50.0
 
 
 # ---------- Automated Feedback Logs ----------
-# This function is used to log interactions with the AI for audit and analysis purposes.
+#  function to log interactions with the AI for audit and analysis purposes.
 # It stores the prompt and response, along with metadata about the student and quiz.
 # This allows us to track how the AI is being used and analyze the effectiveness of the feedback.
 async def log_automated_interaction(
@@ -121,7 +129,6 @@ async def log_automated_interaction(
 
 # recalculate a student's preferred difficulty based on recent quiz scores.
 # This can be called after each quiz attempt to adjust the difficulty of future quizzes for that student.
-
 
 async def update_student_difficulty(db: AsyncSession, student_id: int):
     """
@@ -159,3 +166,40 @@ async def update_student_difficulty(db: AsyncSession, student_id: int):
         db.add(student)
         await db.commit()
         logger.info(f"Updated student {student_id} difficulty to {new_difficulty}")
+
+# function that calculates risk scores for all students based on their recent performance trends.
+async def update_risk_scores(db: AsyncSession):
+    """Calculate risk scores for all students based on performance trends."""
+    # Get all students
+    students = await get_students(db)
+    for student in students:
+        # Get their last 10 attempts ordered by date
+        attempts = await db.execute(
+            select(models.QuizAttempt)
+            .where(models.QuizAttempt.student_id == student.id)
+            .order_by(models.QuizAttempt.created_at)
+            .limit(10)
+        )
+        scores = [a.score for a in attempts.scalars().all()]
+        if len(scores) < 3:
+            continue  # Not enough data
+        
+        # Simple linear regression on attempt indices (0,1,2,...)
+        X = list(range(len(scores)))
+        model = LinearRegression()
+        model.fit([[x] for x in X], scores)
+        slope = model.coef_[0]
+        
+        # Risk score: high if average low and trend negative
+        avg_score = sum(scores)/len(scores)
+        risk = 0.0
+        if avg_score < 50:
+            risk = 0.7
+        if slope < -2:  # dropping more than 2 points per attempt
+            risk = max(risk, 0.8)
+        elif slope < 0:
+            risk = max(risk, 0.5)
+        
+        student.risk_score = risk
+        db.add(student)
+    await db.commit()

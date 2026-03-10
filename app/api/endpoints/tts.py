@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 @router.get("/tts")
 async def text_to_speech(
     text: str = Query(..., description="Text to convert to speech"),
-    voice: str = Query("en-US-JennyNeural", description="Voice name (see Edge-TTS docs)"),
+    voice: str = Query("sw-KE-ZuriNeural", description="Voice name (see Edge-TTS docs)"),
     rate: str = Query("+0%", description="Speaking rate: e.g., '-10%' for slower, '+10%' for faster")
 ):
     """

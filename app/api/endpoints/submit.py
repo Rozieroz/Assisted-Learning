@@ -85,5 +85,8 @@ async def submit_answer(
     # call update_student_difficulty after storing the attempt to ensure we have the latest data for the student
     await crud.update_student_difficulty(db, submission.student_id)
 
+    # Generate TTS URL for the feedback text which can be used by frontend to fetch audio
+    tts_url = f"/api/tts?text={quote(feedback_text)}"
+
     return attempt
 
