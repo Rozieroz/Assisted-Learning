@@ -66,6 +66,7 @@ def create_tables_orm():
 
         # Create all tables (they will be placed in the schema specified
         # by each model's __table_args__, or metadata.schema if not set)
+        logger.info(f"Tables to create: {Base.metadata.tables.keys()}")
         Base.metadata.create_all(engine)
         logger.info(f"Core tables created/verified using ORM (expected schema: {DB_SCHEMA}).")
 

@@ -95,8 +95,44 @@ CREATE TABLE IF NOT EXISTS teacher_notes (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
+-- =====================================================
+-- advance with new ew tables for teacher & class management
+-- =====================================================
+
+-- Teachers (can be extended with authentication later)
+CREATE TABLE IF NOT EXISTS teachers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    password_hash VARCHAR(255),          -- for future login
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Classes created by teachers
+CREATE TABLE IF NOT EXISTS classes (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    class_code VARCHAR(20) UNIQUE NOT NULL,   -- e.g., "MATH101"
+    teacher_id INTEGER REFERENCES teachers(id) ON DELETE CASCADE,
+    subject VARCHAR(100),
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Many-to-many relationship between students and classes
+CREATE TABLE IF NOT EXISTS class_students (
+    id SERIAL PRIMARY KEY,
+    class_id INTEGER REFERENCES classes(id) ON DELETE CASCADE,
+    student_id INTEGER REFERENCES students(id) ON DELETE CASCADE,
+    enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(class_id, student_id)
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_student ON quiz_attempts(student_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_quiz ON quiz_attempts(quiz_id);
 CREATE INDEX IF NOT EXISTS idx_performance_logs_student ON performance_logs(student_id);
 CREATE INDEX IF NOT EXISTS idx_ai_feedback_student ON ai_feedback_logs(student_id);
+
+

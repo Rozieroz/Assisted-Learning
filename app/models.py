@@ -36,6 +36,8 @@ class Student(Base):
     performance_logs = relationship("PerformanceLog", back_populates="student")
     ai_feedback_logs = relationship("AIFeedbackLog", back_populates="student")
     teacher_notes = relationship("TeacherNote", back_populates="student")
+    classes = relationship("ClassStudent", back_populates="student")
+
 
 
 class Topic(Base):
@@ -143,6 +145,54 @@ class TeacherNote(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     student = relationship("Student", back_populates="teacher_notes")
+
+# =============================================================
+# ADVANCE THE PROJECT - added in scripts/01_create_tables.sql
+# =================================================================
+class Teacher(Base):
+    __tablename__ = "teachers"
+    __table_args__ = {"schema": SCHEMA}
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(150), unique=True, nullable=False)
+    password_hash = Column(String(255))
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    # Relationships
+    classes = relationship("Class", back_populates="teacher")
+
+
+class Class(Base):
+    __tablename__ = "classes"
+    __table_args__ = {"schema": SCHEMA}
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    class_code = Column(String(20), unique=True, nullable=False)
+    teacher_id = Column(Integer, ForeignKey(f"{SCHEMA}.teachers.id", ondelete="CASCADE"))
+    subject = Column(String(100))
+    description = Column(Text)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    teacher = relationship("Teacher", back_populates="classes")
+    students = relationship("ClassStudent", back_populates="class_")
+
+
+class ClassStudent(Base):
+    __tablename__ = "class_students"
+    __table_args__ = (
+        UniqueConstraint("class_id", "student_id", name="unique_class_student"),
+        {"schema": SCHEMA}
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    class_id = Column(Integer, ForeignKey(f"{SCHEMA}.classes.id", ondelete="CASCADE"))
+    student_id = Column(Integer, ForeignKey(f"{SCHEMA}.students.id", ondelete="CASCADE"))
+    enrolled_at = Column(TIMESTAMP, server_default=func.now())
+
+    class_ = relationship("Class", back_populates="students")
+    student = relationship("Student", back_populates="classes")
 
 """
 Table	            Purpose
