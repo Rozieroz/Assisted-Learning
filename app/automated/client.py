@@ -133,6 +133,13 @@ class AutomatedContentService:
         
         Ensure all options are plausible and the correct answer is clearly correct.
         """
+
+        if recent_questions:
+            avoid_text = "\n".join([f"   - {q[:100]}..." for q in recent_questions if q])
+            prompt = prompt.replace(
+                "IMPORTANT RULES:",
+                f"IMPORTANT RULES:\n\nAvoid these recent questions:\n{avoid_text}\n"
+            )
         
         try:
             response = await self.client.chat.completions.create(
