@@ -1035,27 +1035,22 @@
   }
 
   function markOptions(result) {
-    const correctIdx = result.correct_index ?? result.correct_answer_index ?? null;
-    const correctVal = result.correct_answer ?? result.correct_option ?? null;
-    const options    = state.question?.options ?? state.question?.choices ?? [];
+    // Use the correct answer from the question data (already stored in state)
+    const correctLetter = state.question?.correct_answer; // e.g., "B"
+    const letters = ['A', 'B', 'C', 'D',]; // up to 4 options
 
-    document.querySelectorAll('.opt-btn').forEach((btn,i) => {
+    document.querySelectorAll('.opt-btn').forEach((btn, i) => {
       btn.disabled = true;
       const icon = btn.querySelector('.opt-icon');
-      let isCorrect = false;
-      if (correctIdx!==null)      isCorrect = (i===correctIdx);
-      else if (correctVal!==null) {
-        const t = typeof options[i]==='string' ? options[i] : options[i]?.text ?? '';
-        isCorrect = t===correctVal;
-      }
+      const isCorrect = (correctLetter === letters[i]);
 
       btn.classList.remove('selected');
       if (isCorrect) {
         btn.classList.add('correct');
-        if (icon) icon.className='bi bi-check-circle-fill opt-icon';
-      } else if (i===state.selectedIdx) {
+        if (icon) icon.className = 'bi bi-check-circle-fill opt-icon';
+      } else if (i === state.selectedIdx) {
         btn.classList.add('wrong');
-        if (icon) icon.className='bi bi-x-circle-fill opt-icon';
+        if (icon) icon.className = 'bi bi-x-circle-fill opt-icon';
       }
     });
   }
